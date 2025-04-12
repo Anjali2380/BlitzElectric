@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Comprehensive DGA Analyzer v13 (Final UI)</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --primary-bg: #f8f9fa; /* Lighter overall background */
+            --container-bg: #ffffff;
+            --header-color: #343a40; /* Dark grey header */
+            --subheader-color: #007bff; /* Brighter blue subheader */
+            --text-color: #495057; /* Softer text grey */
+            --input-bg: #ffffff; /* White input background */
+            --input-border: #ced4da; /* Grey input border */
+            --button-bg: #007bff;
+            --button-hover-bg: #0056b3;
+            --button-save-bg: #28a745; /* Bootstrap green */
+            --button-save-hover-bg: #218838;
+            --button-clear-bg: #dc3545; /* Bootstrap red */
+            --button-clear-hover-bg: #c82333;
+            --button-trend-bg: #6f42c1; /* Bootstrap purple */
+            --button-trend-hover-bg: #5a32a3;
+            --button-disabled-bg: #6c757d; /* Grey disabled */
+            --result-bg: #ffffff;
+            --result-border: #dee2e6;
+            --graphic-wrapper-bg: #ffffff;
+            --graphic-border: #dee2e6;
+            --fault-text-color: #343a40;
+            --keygas-bg: #e0f7fa; --keygas-border: #00bcd4; /* Cyan */
+            --ratio-border-rogers: #0277bd; --ratio-bg-rogers: #e1f5fe;
+            --ratio-border-iec: #2e7d32;   --ratio-bg-iec: #e8f5e9;
+            --ratio-border-dorn: #ef6c00;  --ratio-bg-dorn: #fff3e0;
+            --ratio-border-basic: #6a1b9a; --ratio-bg-basic: #f3e5f5;
+            --ratio-border-extra: #546e7a; --ratio-bg-extra: #eceff1; /* Specific ratios */
+            --fault-interp-bg: #e9ecef; --fault-interp-border: #ced4da; /* Interpretation background */
+            --table-header-bg: #e9ecef;
+            --table-row-hover: #f1f3f4;
+            --diff-output-bg: #fff9c4; --diff-output-border: #ffecb3; /* Lighter Yellow for diff */
+            --logo-placeholder-color: #6c757d;
+            --trend-section-bg: #f1f3f4;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"; /* System font stack */
+            margin: 0; padding: 15px 0; background: var(--primary-bg);
+            color: var(--text-color); display: flex; flex-direction: column; align-items: center; font-size: 16px; /* Base font size */
+        }
+        .container {
+            background: var(--container-bg); padding: 25px 35px; margin: 20px; border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08); width: 95%; max-width: 1200px; /* Slightly narrower max */
+        }
+        .logo-placeholder {
+            height: 55px; width: 220px; background: var(--logo-placeholder-color);
+            color: white; display: flex; align-items: center; justify-content: center; margin: 0 auto 35px auto;
+            font-weight: 600; border-radius: 6px; text-align: center; font-size: 1em; letter-spacing: 1px;
+        }
+        .logo {
+            display: block; /* Needed for margin auto centering */
+            margin: 0 auto 30px auto; /* Center horizontally, add bottom margin */
+            height: 100px; /* Control height */
+            width: auto; /* Maintain aspect ratio */
+            max-width: 300px; /* Optional max width */
+            object-fit: contain; /* Prevent distortion */
+        }
+        h1, h2, h3 { text-align: center; color: var(--header-color); margin-bottom: 20px; font-weight: 600;}
+        h1 { font-size: 2.1em; letter-spacing: -0.5px;}
+        h2 { font-size: 1.7em; color: var(--subheader-color); margin-top: 30px;}
+        h3 { margin-top: 35px; border-bottom: 1px solid var(--graphic-border); padding-bottom: 10px; color: var(--header-color); font-size: 1.35em; font-weight: 500;}
+        .input-section, .results-section, .graphics-section, .history-section, .trend-section { margin-bottom: 35px; }
+        .input-section > div { margin-bottom: 20px; }
+        .gas-inputs { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 15px; }
+        .gas-inputs label, .date-input label { display: flex; flex-direction: column; align-items: center; font-size: 0.95em; background-color: var(--input-bg); padding: 12px 8px; border-radius: 6px; border: 1px solid var(--input-border); transition: box-shadow 0.2s ease;}
+        .gas-inputs label:focus-within, .date-input label:focus-within { box-shadow: 0 0 0 2px var(--button-bg); border-color: var(--button-bg);}
+        input[type="number"] { padding: 8px; margin-top: 6px; width: 85%; border: 1px solid #ccc; border-radius: 4px; text-align: right; font-size: 1em; }
+        input[type="date"] { padding: 7px; margin-top: 6px; border: 1px solid #ccc; border-radius: 4px; font-family: inherit; font-size: 1em;}
+        .date-input { max-width: 280px; margin: 0 auto 25px auto; }
+        .button-group { display: flex; justify-content: center; gap: 18px; margin-top: 10px; flex-wrap: wrap; }
+        .plot-options { text-align: center; margin: 20px 0 15px 0; font-size: 1em; }
+        .plot-options label { margin: 0 15px; cursor: pointer; } .plot-options input[type="checkbox"] { vertical-align: middle; margin-right: 5px; transform: scale(1.1);}
+        button { padding: 11px 24px; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 1.05em; font-weight: 500; transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease; box-shadow: 0 3px 6px rgba(0,0,0,0.1); }
+        button:hover:not(:disabled) { filter: brightness(1.1); box-shadow: 0 5px 10px rgba(0,0,0,0.15); transform: translateY(-1px);}
+        button:active:not(:disabled) { transform: translateY(0px); box-shadow: 0 2px 4px rgba(0,0,0,0.1);}
+        #analyzeBtn { background-color: var(--button-bg); }
+        #saveBtn { background-color: var(--button-save-bg); }
+        #clearBtn { background-color: var(--button-clear-bg); margin-top: 18px; }
+        #plotTrendsBtn { background-color: var(--button-trend-bg); }
+        #plotTrendsBtn:disabled { background-color: var(--button-disabled-bg); cursor: not-allowed; box-shadow: none; filter: grayscale(60%); transform: none; }
+        #result { margin-top: 25px; padding: 15px; background-color: var(--result-bg); border: 1px solid var(--result-border); border-radius: 8px; line-height: 1.65; font-size: 1em; }
+        #result strong { color: #212529; font-weight: 600;}
+        .graphics-container { display: flex; flex-wrap: wrap; justify-content: space-around; align-items: flex-start; gap: 30px; margin-top: 30px; }
+        .graphic-wrapper { display: flex; flex-direction: column; align-items: center; margin-bottom: 20px; padding: 20px; background: var(--graphic-wrapper-bg); border: 1px solid var(--graphic-border); border-radius: 8px; min-width: 360px; box-shadow: 0 3px 8px rgba(0,0,0,0.07); }
+         .graphic-wrapper h3 { margin-top: 0; margin-bottom: 15px; font-size: 1.2em; color: #495057;}
+         .fault-interpretation { font-size: 0.9em; margin-top: 12px; padding: 12px 15px; text-align: left; font-weight: normal; color: var(--text-color); min-height: 50px; width: 90%; border-radius: 6px; background-color: var(--fault-interp-bg); border: 1px solid var(--fault-interp-border); line-height: 1.6; }
+         .fault-interpretation strong { font-weight: bold; color: #0056b3;} .fault-interpretation small {font-size: 0.9em; color: #555;}
+        canvas { background: #ffffff; border: 1px solid #ccc; border-radius: 4px; max-width: 100%;}
+        .result-block { margin-bottom: 20px; padding: 18px; border-bottom: 1px solid #e0e0e0; border-radius: 8px; background-color: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.06); }
+        .result-block:last-child { border-bottom: none; }
+        .result-title { font-weight: 600; color: var(--subheader-color); margin-bottom: 15px; display: block; font-size: 1.2em; padding-bottom: 8px; border-bottom: 1px solid var(--graphic-border); }
+         .ratio-method-result { padding: 14px 20px; margin-bottom: 15px; border: 1px solid #ddd; border-left-width: 6px; border-radius: 6px; font-size: 0.95em; line-height: 1.7; }
+          .ratio-method-result .method-title { font-weight: bold; font-size: 1.1em; margin-bottom: 8px; display: block; color: #444; }
+         .ratio-method-result strong { font-weight: 600; }
+         #rogers-result { border-left-color: var(--ratio-border-rogers); background-color: var(--ratio-bg-rogers);}
+         #iec-result { border-left-color: var(--ratio-border-iec); background-color: var(--ratio-bg-iec);}
+         #dornenburg-result { border-left-color: var(--ratio-border-dorn); background-color: var(--ratio-bg-dorn);}
+         #basic-ratio-result { border-left-color: var(--ratio-border-basic); background-color: var(--ratio-bg-basic);}
+         .extra-ratio-result { padding: 14px 20px; margin-bottom: 15px; border: 1px solid #ccc; border-left-width: 6px; border-radius: 6px; font-size: 0.95em; line-height: 1.7; border-left-color: var(--ratio-border-extra); background-color: var(--ratio-bg-extra); }
+         .extra-ratio-result .method-title { font-weight: bold; font-size: 1.1em; margin-bottom: 8px; display: block; color: #37474f; }
+         .extra-ratio-result strong { font-weight: 600; }
+        .key-gas-result { background-color: var(--keygas-bg); border-left: 5px solid var(--keygas-border); padding: 14px 18px; margin: 12px 0; border-radius: 6px; font-size: 0.95em;}
+         /* History Table Styles */
+         .history-section { text-align: center; }
+         .history-table-container { max-height: 300px; overflow-y: auto; margin-top: 10px; border: 1px solid #ccc; border-radius: 6px;}
+         #historyTable { width: 100%; margin: 0; border-collapse: collapse; font-size: 0.9em; } /* Increased base size */
+         #historyTable th, #historyTable td { border: 1px solid #ddd; padding: 9px 6px; text-align: center; white-space: nowrap; }
+         #historyTable th { background-color: var(--table-header-bg); font-weight: 600; position: sticky; top: 0; z-index: 1;}
+         #historyTable tr:nth-child(even) { background-color: #f9f9f9; } #historyTable tr:hover { background-color: var(--table-row-hover); }
+         #historyTable input[type="checkbox"] { cursor: pointer; vertical-align: middle; transform: scale(1.1);} #historyTable td:nth-child(3) { min-width: 110px;} /* Sample Date */
+         #historyTable td:last-child { font-style: italic; color: #777;}
+         /* Gas Difference Output */
+         #gasDifferenceOutput { margin: 25px 0 15px 0; padding: 15px; background-color: var(--diff-output-bg); border: 1px solid var(--diff-output-border); border-radius: 6px; font-size: 0.95em; line-height: 1.6; text-align: left; }
+         #gasDifferenceOutput h3 { font-size: 1.15em; margin-bottom: 10px; text-align: center; color: #ef6c00; border-bottom: none; margin-top: 0;}
+         #gasDifferenceOutput table { width: auto; margin: 10px auto; border-collapse: collapse; background-color: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+         #gasDifferenceOutput th, #gasDifferenceOutput td { border: 1px solid #f5d9a3; padding: 5px 10px; text-align: right;}
+         #gasDifferenceOutput th { background-color: #ffeccf; font-weight: 600; } #gasDifferenceOutput td:first-child { text-align: left; font-weight: bold;}
+          /* Increased Gas Analysis Block */
+          #increased-gas-analysis { background-color: #fff3e0; border-left: 5px solid #ff9800; }
+          #increased-gas-analysis .result-title { color: #ef6c00; }
+          #increased-gas-analysis ul { list-style: none; padding-left: 5px; margin-top: 8px; margin-bottom: 8px;}
+          #increased-gas-analysis li { margin-bottom: 6px; font-size: 0.98em;}
+         /* Trend Section */
+         .trend-section { padding: 25px; background-color: var(--trend-section-bg); border-radius: 8px; border: 1px solid var(--result-border); }
+         .trend-charts-container { display: flex; flex-wrap: wrap; gap: 25px; justify-content: space-around; margin-top: 18px; }
+         .trend-chart-wrapper { flex: 1 1 90%; min-width: 400px; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
+         .error-message { color: red; font-weight: bold; padding: 10px; border: 1px solid red; background-color: #ffebee; border-radius: 4px; text-align: center; margin-top: 15px;}
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img class="logo"src="https://aptransco.gov.in/about/logo-multi-color-1.png" alt="AP Transco" width="100" height="100" style="vertical-align:middle">
+        <h1>Comprehensive DGA Analyzer</h1>
+
+        <div class="input-section">
+             <h2>Enter Current Sample Data</h2>
+             <div class="date-input"> <label>Sample Date: <input type="date" id="sampleDate"></label> </div>
+             <div class="gas-inputs">
+                 <label>H₂ <input id="H2" type="number" min="0" placeholder="0" /></label>
+                 <label>CH₄ <input id="CH4" type="number" min="0" placeholder="0" /></label>
+                 <label>C₂H₆ <input id="C2H6" type="number" min="0" placeholder="0" /></label>
+                 <label>C₂H₄ <input id="C2H4" type="number" min="0" placeholder="0" /></label>
+                 <label>C₂H₂ <input id="C2H2" type="number" min="0" placeholder="0" /></label>
+                 <label>CO <input id="CO" type="number" min="0" placeholder="0" /></label>
+                 <label>CO₂ <input id="CO2" type="number" min="0" placeholder="0" /></label>
+                 <label>O₂ <input id="O2" type="number" min="0" placeholder="0" /></label>
+                 <label>N₂ <input id="N2" type="number" min="0" placeholder="0" /></label>
+             </div>
+             <div class="plot-options"> <label><input type="checkbox" id="plotCurrentSample" onchange="updateTrendButtonState()" checked> Plot Current (C)</label> <label><input type="checkbox" id="compareWithPrevious" onchange="updateTrendButtonState()"> Compare w/ Prev (P+Δ)</label> </div>
+             <div class="button-group"> <button id="analyzeBtn" onclick="runFullAnalysis()">Analyze DGA</button> <button id="saveBtn" onclick="saveCurrentSample()">Save Sample</button> <button id="plotTrendsBtn" onclick="plotTrends()" disabled>Plot Trends</button> </div>
+        </div>
+
+         <div class="history-section">
+            <h2>Historical Samples (Max 10 - Select samples below to plot trends)</h2>
+             <div class="history-table-container"> <table id="historyTable"> <thead> <tr> <th>Plot?</th><th>#</th><th>Sample Date</th> <th>H₂</th><th>CH₄</th><th>C₂H₆</th><th>C₂H₄</th><th>C₂H₂</th><th>CO</th><th>CO₂</th><th>O₂</th><th>N₂</th> <th>Saved</th> </tr> </thead> <tbody></tbody> </table> </div>
+            <button id="clearBtn" onclick="clearHistory()">Clear History</button>
+        </div>
+
+        <div class="results-section">
+            <h2>Analysis Results (Current Sample)</h2>
+             <div id="gasDifferenceOutput"></div>
+             <div id="result"> <p>Enter gas values and click 'Analyze DGA'. Results shown are for the values in the input fields above.</p>
+                 <div id="tdcg-analysis"></div> <div id="ratio-analysis"></div> <div id="extra-ratio-analysis"></div>
+                 <div id="key-gas-analysis"></div> <div id="supplementary-analysis"></div>
+                 <div id="increased-gas-analysis"></div>
+             </div>
+        </div>
+
+         <div class="trend-section">
+             <h2>Trend Analysis (Selected Samples)</h2>
+             <p style="text-align: center; font-size: 0.9em;">Select 2 or more samples (Current and/or Historical) and click "Plot Trends".</p>
+             <div class="trend-charts-container">
+                 <div class="trend-chart-wrapper"> <canvas id="ppmTrendChart" height="350"></canvas> </div>
+                 <div class="trend-chart-wrapper"> <canvas id="percentTrendChart" height="350"></canvas> </div>
+             </div>
+        </div>
+
+        <div class="graphics-section">
+            <h2>Graphical Analysis (C=Current, P=Previous, #=History, Δ=Difference)</h2>
+            <div class="graphics-container">
+                 <div class="graphic-wrapper"> <h3>Duval Triangle 1 (C₂H₂, C₂H₄, CH₄)</h3> <canvas id="dt1" width="350" height="320"></canvas> <div id="dt1-fault" class="fault-interpretation">Interpretation for Current Sample</div> </div>
+                 <div class="graphic-wrapper"> <h3>Duval Triangle 4 (C₂H₆, CH₄, H₂)</h3> <canvas id="dt4" width="350" height="320"></canvas> <div id="dt4-fault" class="fault-interpretation">Interpretation for Current Sample</div> </div>
+                 <div class="graphic-wrapper"> <h3>Duval Triangle 5 (C₂H₆, C₂H₄, CH₄)</h3> <canvas id="dt5" width="350" height="320"></canvas> <div id="dt5-fault" class="fault-interpretation">Interpretation for Current Sample</div> </div>
+                 <div class="graphic-wrapper"> <h3>Duval Pentagon 1 (User Gas Order)</h3> <canvas id="dp1" width="350" height="350"></canvas> <div id="dp1-fault" class="fault-interpretation">Interpretation for Current Sample</div> </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Constants and Definitions ---
+        const MAX_HISTORY = 10; const canvasPadding = 30; const pentagonPadding = 40;
+        const GASES_FOR_DIFF = ["H2", "CH4", "C2H6", "C2H4", "C2H2", "CO"];
+        const colorCurrent = 'red'; const colorPrevious = 'orange'; const colorHistorical = 'blue'; const colorDifference = 'magenta';
+
+        // --- Coordinates for Triangles & DP1 ---
+        const dt1Regions = [ { name: "PD", color: "rgba(153, 204, 255, 0.8)", coords: [[4.9, 8.49],[5.1, 8.49],[5, 8.66]] }, { name: "T1", color: "rgba(255, 230, 153, 0.8)", coords: [[4.9, 8.49],[4.8, 8.31],[5.8, 6.58],[6, 6.93],[5.1, 8.49]] }, { name: "T2", color: "rgba(255, 217, 102, 0.8)", coords: [[5.8, 6.58],[7.3, 3.98],[7.5, 4.33],[6, 6.93]] }, { name: "T3", color: "rgba(244, 177, 177, 0.8)", coords: [[7.5, 4.33],[6.75, 3.03],[8.5, 0],[10, 0]] }, { name: "D2", color: "rgba(197, 224, 180, 0.8)", coords: [[2.3, 0],[5.5, 5.54],[6.35, 4.07],[5.55, 2.68],[7.1, 0]] }, { name: "D1", color: "rgba(189, 215, 238, 0.8)", coords: [[0, 0],[2.3, 0],[5.5, 5.54],[4.35, 7.53]] }, { name: "DT", color: "rgba(214, 191, 226, 0.8)", coords: [[7.1, 0],[5.55, 2.68],[6.35, 4.07],[4.35, 7.53],[4.8, 8.31],[7.3, 3.98],[6.75, 3.03],[8.5, 0]] } ];
+        const dt4Regions = [ { name: "O", color: "rgba(251, 218, 180, 0.8)", coords: [[0, 0], [0.45, 0.7794], [6.55, 0.7794], [7, 0]] }, { name: "No Fault", color: "rgba(182, 215, 168, 0.8)", coords: [[0.45, 0.7794], [4.95, 0.7794], [2.7, 4.6764]] }, { name: "PD", color: "rgba(201, 218, 248, 0.8)", coords: [[5.1, 8.4868], [5.75, 7.361], [5.7, 7.2744], [5.05, 8.4002]] }, { name: "S", color: "rgba(213, 166, 189, 0.8)", coords: [[2.7, 4.6764], [4.95, 0.7794], [6.55, 0.7794], [6.25, 1.3], [6.8, 1.3], [5.55, 3.464], [6.8, 5.5424], [5.75, 7.361], [5.7, 7.2744], [5.05, 8.4002], [5.1, 8.4868], [5, 8.66]] }, { name: "C", color: "rgba(234, 209, 220, 0.8)", coords: [[6.8, 5.5424], [5.55, 3.464], [6.8, 1.3], [6.25, 1.3], [6.55, 0.7794], [7, 0], [10, 0]] } ];
+        const dt5Regions = [ { name: "O-1", color: "rgba(244, 204, 204, 0.8)", coords: [[1, 0],[2.8, 3.12],[2.3, 3.984],[0, 0]] }, { name: "S", color: "rgba(182, 215, 168, 0.8)", coords: [[2.8, 3.12],[4.75, 6.495],[4.25, 7.361],[2.3, 3.984]] }, { name: "PD", color: "rgba(207, 226, 243, 0.8)", coords: [[4.25, 7.361],[4.3, 7.274],[4.95, 8.4],[4.9, 8.4868]] }, { name: "O-2", color: "rgba(252, 229, 205, 0.8)", coords: [[4.75, 6.495],[5.5, 7.794],[5, 8.66],[4.25, 7.361]] }, { name: "T2-A", color: "rgba(255, 242, 204, 0.8)", coords: [[1, 0],[3.5, 0],[5.25, 3.03],[4, 5.196]] }, { name: "T3-1", color: "rgba(217, 210, 233, 0.8)", coords: [[3.5, 0],[7, 0],[5.25, 3.03]] }, { name: "C", color: "rgba(208, 224, 227, 0.8)", coords: [[4, 5.196],[4.9, 6.7548],[6.8, 3.464],[6.7, 3.291],[7.8, 1.3856],[7, 0]] }, { name: "T2-B", color: "rgba(255, 242, 204, 0.8)", coords: [[4.9, 6.7548],[5.5, 7.794],[6.75, 5.63],[6.15, 4.5898]] }, { name: "T3-2", color: "rgba(217, 210, 233, 0.8)", coords: [[7, 0],[10, 0],[6.75, 5.63],[6.15, 4.5898],[6.8, 3.464],[6.7, 3.291],[7.8, 1.3856]] } ];
+        const dp1Regions = [ { name: "PD", color: "rgba(153, 204, 255, 0.7)", coords: [[0, 33], [-1, 33], [-1, 24.5], [0, 24.5]] }, { name: "D1", color: "rgba(189, 215, 238, 0.7)", coords: [[0, 1.5], [4, 16], [32, -6.1], [38, 12], [0, 40] ] }, { name: "D2", color: "rgba(197, 224, 180, 0.7)", coords: [[0, 1.5], [0, -3], [24.3, -30], [32, -6.1], [4, 16] ] }, { name: "T3", color: "rgba(244, 177, 177, 0.7)", coords: [[0, -3], [-6, -4], [1, -32], [23.5, -32.4], [24.3, -30] ] }, { name: "T2", color: "rgba(255, 217, 102, 0.7)", coords: [[-6, -4], [-22.5, -32.4], [1, -32.4]] }, { name: "T1", color: "rgba(255, 230, 153, 0.7)", coords: [[-6, -4], [0, -3], [0, 1.5], [-35, 3], [-23.5, -32.4], [-22.5, -32.4] ] }, { name: "S", color: "rgba(213, 166, 189, 0.7)", coords: [[0, 1.5], [0, 24.5], [-1, 24.5], [-1, 33], [0, 33], [0, 40], [-38, 12.4], [-35, 3.1]] } ];
+
+        // --- Helper Functions ---
+        function mapPercentagesToTriangleCartesian(pA, pB, pC) { const total = pA + pB + pC; if (total < 1e-6) return [NaN, NaN]; const normA = pA / total; const normB = pB / total; const normC = pC / total; const userX = normB * 10 + normC * 5; const userY = normC * 8.66025; return [userX, userY]; }
+        function mapPercentagesToPentagonCartesian(percentages_obj) { const gasOrder = ['H2', 'CH4', 'C2H6', 'C2H4', 'C2H2']; const total = gasOrder.reduce((s, gas) => s + (percentages_obj[gas] || 0), 0); if (total < 1e-6) { console.warn("Pentagon map: Total percentage is near zero."); return [NaN, NaN]; } const scaleFactor = 40; const userGasToAngleMap = { 'H2': 90, 'C2H2': 18, 'C2H4': 306, 'CH4': 234, 'C2H6': 162 }; let weightedSumX = 0; let weightedSumY = 0; for (const gas of gasOrder) { const percentage = percentages_obj[gas] ?? 0; const p = percentage / total; const angleDeg = userGasToAngleMap[gas]; if (angleDeg === undefined) continue; const angleRad = angleDeg * Math.PI / 180; const baseX = scaleFactor * Math.cos(angleRad); const baseY = scaleFactor * Math.sin(angleRad); weightedSumX += p * baseX; weightedSumY += p * baseY; } console.log(`DP1 map result: X=${weightedSumX.toFixed(2)}, Y=${weightedSumY.toFixed(2)}`); return [weightedSumX, weightedSumY]; }
+        function isPointInRegion(pointX, pointY, regionVertexCoords) { let inside = false; const vertices = regionVertexCoords; for (let i = 0, j = vertices.length - 1; i < vertices.length; j = i++) { const xi = vertices[i][0], yi = vertices[i][1]; const xj = vertices[j][0], yj = vertices[j][1]; const intersect = ((yi > pointY) !== (yj > pointY)) && (pointX < (xj - xi) * (pointY - yi) / (yj - yi) + xi); if (intersect) inside = !inside; } return inside; }
+        function getFaultFromCoords(pointX, pointY, regions) { if (pointX === undefined || pointY === undefined || pointX === null || pointY === null || isNaN(pointX) || isNaN(pointY)) return "N/A"; for (const region of regions) { if (isPointInRegion(pointX, pointY, region.coords)) { return region.name.replace("-A", "").replace("-B","").replace("-P","").replace("/C","").replace("-1","").replace("-2",""); } } return "Undefined Zone"; }
+        function getInterpretationText(faultCode, graphTypeNum) { const interpretations = { "PD": { reason: "Corona, voids, surface discharges.", action: "Confirm with electrical tests. Monitor closely."}, "T1": { reason: "Low temp. overheating (<300°C) paper/oil.", action: "Check load/cooling. Monitor gas rate."}, "T2": { reason: "Med temp. overheating (300-700°C) paper/oil.", action: "Reduce load. Monitor rate. Plan inspection."}, "T3": { reason: "High temp. overheating (>700°C) oil/metal.", action: "Urgent. Confirm source. Plan inspection/repair."}, "T3-H": { reason: "High temperature thermal fault variant (non-standard zone).", action: "Treat as T3 - Urgent investigation."}, "D1": { reason: "Low energy discharges (sparks).", action: "Monitor rate. Electrical tests. Plan inspection."}, "D2": { reason: "High energy discharges (arcs).", action: "Critical. Investigate & repair."}, "DT": { reason: "Mixed discharge & thermal fault.", action: "Complex, urgent. Detailed investigation."}, "O": { reason: "Overheating (General Zone).", action: "Verify load/cooling. Monitor gas trends."}, "No Fault": { reason: "Normal operation or minor stray gassing.", action: "Continue routine monitoring."}, "S": { reason: "Stray gassing or low temp paper heating.", action: "Monitor trend. Check conditions."}, "C": { reason: "Carbonization of paper.", action: "Urgent. Plan inspection/repair."}, "Undefined Zone": { reason: "Point falls outside defined standard zones.", action: "Review data, consider other methods, monitor trends."}, "N/A": { reason: "Calculation could not be performed or point invalid.", action: "Check input values or calculation logs."}, "Plot Error": { reason: "Software error during point calculation or plotting.", action: "Verify input values and report bug."}, "Draw Error": { reason: "Software error during graph drawing (check coordinates).", action: "Verify region coordinates and report bug."}}; const result = interpretations[faultCode] || interpretations["Undefined Zone"]; let specificReason = result.reason; if (faultCode === 'S' && graphTypeNum === 1) specificReason = "Stray gassing - Unusual for DT1 (User Axes), check other methods."; return `<strong>Zone:</strong> ${faultCode}<br><strong>Probable Reasons:</strong> ${specificReason}<br><strong>Recommended Action:</strong> ${result.action}`; }
+
+        // --- Marker Plotting with Labels ---
+        function plotMarker(ctx, x, y, label = null, markerType = 'current') {
+            if (!ctx || !ctx.beginPath || isNaN(x) || isNaN(y)) { console.error(`PlotMarker Error: Invalid context or coordinates (${x}, ${y}) for label ${label}`); return; }
+            try {
+                ctx.save(); ctx.beginPath(); ctx.lineWidth = 1.5; ctx.globalAlpha = 0.85;
+                let radius = 5; let fillStyle = colorCurrent; let strokeStyle = 'black';
+                let doFill = true; let markerShape = 'circle';
+
+                if (markerType === 'previous') { radius = 5.5; fillStyle = colorPrevious; strokeStyle = '#a05200'; }
+                else if (markerType === 'historical') { radius = 4; strokeStyle = colorHistorical; fillStyle = 'rgba(0, 0, 255, 0.1)'; }
+                else if (markerType === 'difference') { radius = 5; strokeStyle = colorDifference; fillStyle = 'rgba(255, 0, 255, 0.3)'; markerShape = 'triangle'; }
+
+                if(markerShape === 'circle'){ ctx.arc(x, y, radius, 0, 2 * Math.PI, false); }
+                else if (markerShape === 'triangle') { const side = radius * 2.5; ctx.moveTo(x, y - side * Math.sqrt(3) / 3 * 0.8); ctx.lineTo(x - side / 2, y + side * Math.sqrt(3) / 6 * 0.8); ctx.lineTo(x + side / 2, y + side * Math.sqrt(3) / 6 * 0.8); ctx.closePath(); }
+
+                ctx.fillStyle = fillStyle; ctx.strokeStyle = strokeStyle;
+                if(doFill || markerType === 'historical' || markerType === 'difference') ctx.fill();
+                ctx.stroke();
+
+                if (label !== null) {
+                    ctx.fillStyle = '#333'; ctx.font = 'bold 9px Arial';
+                    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                    const labelX = x + radius + 4; const labelY = y - radius - 4;
+                    const canvasWidth = ctx.canvas.width; const canvasHeight = ctx.canvas.height;
+                    const finalLabelX = Math.min(canvasWidth - 10, Math.max(10, labelX)); const finalLabelY = Math.min(canvasHeight - 10, Math.max(10, labelY));
+                    ctx.globalAlpha = 0.7; ctx.fillStyle = 'white'; ctx.fillRect(finalLabelX - ctx.measureText(label).width/2 - 1, finalLabelY - 6, ctx.measureText(label).width + 2, 12); ctx.globalAlpha = 1.0;
+                    ctx.fillStyle = '#333'; ctx.fillText(label, finalLabelX, finalLabelY);
+                }
+                ctx.restore();
+            } catch (e) { console.error(`Error in plotMarker for label ${label}:`, e); }
+         }
+
+        // --- Drawing Functions ---
+        function drawTriangle(canvasId, regions, gasNames) {
+             const canvas = document.getElementById(canvasId); if (!canvas || !canvas.getContext) { console.error(`Cannot get canvas context for ${canvasId}`); return null;}
+             const ctx = canvas.getContext("2d"); const w = canvas.width; const h = canvas.height;
+             ctx.clearRect(0, 0, w, h); ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, w, h);
+             const userCoordWidth = 10.0; const availableWidth = w - 2 * canvasPadding;
+             const scaleX = availableWidth / userCoordWidth; const scaleY = scaleX * (Math.sqrt(3)/2);
+             const offsetX = canvasPadding; const offsetY = h - canvasPadding;
+             const transform = (userX, userY) => [offsetX + userX * scaleX, offsetY - userY * scaleY];
+             try {
+                 regions.forEach(r => { ctx.beginPath(); const startPoint = transform(r.coords[0][0], r.coords[0][1]); ctx.moveTo(startPoint[0], startPoint[1]); let minX = startPoint[0], maxX = startPoint[0], minY = startPoint[1], maxY = startPoint[1]; for (let i = 1; i < r.coords.length; i++) { const point = transform(r.coords[i][0], r.coords[i][1]); ctx.lineTo(point[0], point[1]); minX = Math.min(minX, point[0]); maxX = Math.max(maxX, point[0]); minY = Math.min(minY, point[1]); maxY = Math.max(maxY, point[1]); } ctx.closePath(); ctx.fillStyle = r.color; ctx.fill(); ctx.strokeStyle = "#666"; ctx.lineWidth = 0.8; ctx.stroke(); const centerX = minX + (maxX - minX) / 2; const centerY = minY + (maxY - minY) / 2; ctx.fillStyle = "#000"; ctx.font = "bold 9px Segoe UI"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.save(); ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.fillRect(centerX - 12, centerY - 7, 24, 14); ctx.restore(); ctx.fillStyle = "#000"; let displayName = r.name.replace("-A", "").replace("-B","").replace("-1","").replace("-2",""); ctx.fillText(displayName, centerX, centerY); });
+                 const vA = transform(0, 0); const vB = transform(10, 0); const vC = transform(5, 8.66025);
+                 ctx.beginPath(); ctx.moveTo(vA[0], vA[1]); ctx.lineTo(vB[0], vB[1]); ctx.lineTo(vC[0], vC[1]); ctx.closePath(); ctx.strokeStyle = "#000"; ctx.lineWidth = 2.0; ctx.stroke(); ctx.fillStyle = "#111"; ctx.font = "bold 10px Segoe UI"; ctx.textAlign = "center";
+                 ctx.fillText(gasNames[0], vA[0], vA[1] + 15); ctx.fillText(gasNames[1], vB[0], vB[1] + 15); ctx.fillText(gasNames[2], vC[0], vC[1] - 15);
+             } catch(e) { console.error(`Error drawing triangle ${canvasId}:`, e); ctx.fillStyle='red'; ctx.textAlign='center'; ctx.font = '12px Arial'; ctx.fillText('Draw Error', w/2, h/2); return { ctx, transformFunc: null }; }
+             return { ctx, transformFunc: transform };
+        }
+        function drawPentagon(canvasId, gasNames, regions) { // Only DP1 uses regions
+             const canvas = document.getElementById(canvasId); if (!canvas || !canvas.getContext || !regions) { console.error(`Cannot draw pentagon ${canvasId}: canvas or regions missing.`); return null;}
+             const ctx = canvas.getContext("2d"); const w = canvas.width; const h = canvas.height;
+             ctx.clearRect(0, 0, w, h); ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, w, h);
+             let transformFunc = null;
+             try {
+                 let minUserX = Infinity, maxUserX = -Infinity, minUserY = Infinity, maxUserY = -Infinity;
+                 regions.forEach(r => { r.coords.forEach(p => { if(p[0]==null || p[1]==null || !isFinite(p[0]) || !isFinite(p[1])) throw new Error(`Invalid coordinate in region ${r.name}: [${p[0]}, ${p[1]}]`); minUserX = Math.min(minUserX, p[0]); maxUserX = Math.max(maxUserX, p[0]); minUserY = Math.min(minUserY, p[1]); maxUserY = Math.max(maxUserY, p[1]); }); });
+                 const userCoordWidth = maxUserX - minUserX; const userCoordHeight = maxUserY - minUserY;
+                 console.log(`DP1 Bounds Check: Width=${userCoordWidth.toFixed(1)}, Height=${userCoordHeight.toFixed(1)}, MinX=${minUserX.toFixed(1)}, MaxX=${maxUserX.toFixed(1)}, MinY=${minUserY.toFixed(1)}, MaxY=${maxUserY.toFixed(1)}`);
+                 if (!isFinite(userCoordWidth) || !isFinite(userCoordHeight) || userCoordWidth <= 1e-6 || userCoordHeight <= 1e-6) { throw new Error(`Invalid calculated region bounds for ${canvasId}. W:${userCoordWidth} H:${userCoordHeight}. Check coordinate data, min/max values must differ.`); }
+                 const availableWidth = w - 2 * pentagonPadding; const availableHeight = h - 2 * pentagonPadding;
+                 const scaleX = availableWidth / userCoordWidth; const scaleY = availableHeight / userCoordHeight;
+                 const scale = Math.min(scaleX, scaleY);
+                  console.log(`DP1 Calculated Scale: ${scale.toFixed(3)}`);
+                 if (!isFinite(scale) || scale <= 0) { throw new Error(`Invalid calculated scale factor ${scale} for ${canvasId}.`); }
+                 const drawingWidth = userCoordWidth * scale; const drawingHeight = userCoordHeight * scale;
+                 const offsetX = pentagonPadding + (availableWidth - drawingWidth) / 2 - (minUserX * scale);
+                 const offsetY = h - pentagonPadding - (availableHeight - drawingHeight) / 2 + (minUserY * scale);
+                 transformFunc = (userX, userY) => { if (isNaN(userX) || isNaN(userY)) { console.warn(`Invalid coords passed to transformFunc: ${userX}, ${userY}`); return [NaN, NaN]; } return [offsetX + userX * scale, offsetY - userY * scale]; };
+                  console.log(`DP1 Transform Check (0,0): [${transformFunc(0,0)?.map(v=>v.toFixed(1)).join(', ')}]`); // DEBUG
+
+                 regions.forEach(r => { // Wrap region drawing in try-catch
+                     try {
+                         ctx.beginPath(); let startPoint = transformFunc(r.coords[0][0], r.coords[0][1]); if (isNaN(startPoint[0])) throw new Error(`Start point transform failed for region ${r.name}`); ctx.moveTo(startPoint[0], startPoint[1]); let minCanvasX = startPoint[0], maxCanvasX = startPoint[0], minCanvasY = startPoint[1], maxCanvasY = startPoint[1];
+                         let orderedCoords = r.coords;
+                         for (let i = 1; i < orderedCoords.length; i++) { const point = transformFunc(orderedCoords[i][0], orderedCoords[i][1]); if (isNaN(point[0]) || isNaN(point[1])) throw new Error(`NaN coordinate generated for region ${r.name} at index ${i}`); ctx.lineTo(point[0], point[1]); minCanvasX = Math.min(minCanvasX, point[0]); maxCanvasX = Math.max(maxCanvasX, point[0]); minCanvasY = Math.min(minCanvasY, point[1]); maxCanvasY = Math.max(maxCanvasY, point[1]); }
+                         const firstPoint = transformFunc(orderedCoords[0][0], orderedCoords[0][1]); ctx.lineTo(firstPoint[0], firstPoint[1]); // Ensure closure for stroke
+                         ctx.fillStyle = r.color || 'rgba(200,200,200,0.5)'; ctx.fill(); ctx.strokeStyle = "#555"; ctx.lineWidth = 0.7; ctx.stroke();
+                         const centerLabelX = minCanvasX + (maxCanvasX - minCanvasX) / 2; const centerLabelY = minCanvasY + (maxCanvasY - minCanvasY) / 2;
+                         ctx.fillStyle = "#000"; ctx.font = "bold 9px Segoe UI"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.save(); ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.fillRect(centerLabelX - 10, centerLabelY - 7, 20, 14); ctx.restore(); ctx.fillStyle = "#000";
+                         let displayName = r.name.replace("-A", "").replace("-B","").replace("-P","").replace("/C","").replace("-1","").replace("-2","");
+                         ctx.fillText(displayName, centerLabelX, centerLabelY);
+                     } catch (regionError) { console.error(`Error drawing region ${r.name} in ${canvasId}:`, regionError); }
+                 });
+                 // Draw Gas Names using USER'S specified order/mapping
+                 try { // Add try-catch for labels
+                     ctx.fillStyle = '#555'; ctx.font = 'italic 10px Segoe UI';
+                     const userGasOrder = gasNames; const standardAnglesDeg = [90, 18, 306, 234, 162]; const scaleFactor = 40;
+                     for(let i=0; i<5; i++) { const angleRad = standardAnglesDeg[i] * Math.PI / 180; const userX = scaleFactor * Math.cos(angleRad); const userY = scaleFactor * Math.sin(angleRad); const [cx, cy] = transformFunc(userX, userY); const labelOffsetX = Math.cos(angleRad) * 15; const labelOffsetY = -Math.sin(angleRad) * 15; const gasLabel = userGasOrder[i] || '?'; let textAlign = 'center'; let textBaseline = 'middle'; if (i === 0) { textBaseline = 'bottom'; labelOffsetY -= 3; } else if (i === 1) { textAlign = 'left'; labelOffsetX += 3; } else if (i === 2) { textAlign = 'left'; labelOffsetY += 5;} else if (i === 3) { textAlign = 'right'; labelOffsetY += 5;} else if (i === 4) { textAlign = 'right'; labelOffsetX -= 3;} ctx.textAlign = textAlign; ctx.textBaseline = textBaseline; ctx.fillText(gasLabel, cx + labelOffsetX, cy + labelOffsetY); }
+                 } catch (labelError) { console.error(`Error drawing pentagon labels for ${canvasId}:`, labelError); }
+                 console.log(`Successfully drew ${canvasId} regions. Transform function created.`);
+             } catch (e) { console.error(`Error drawing pentagon ${canvasId}:`, e); ctx.fillStyle = 'red'; ctx.font = '12px Arial'; ctx.textAlign = 'center'; ctx.fillText(`Error rendering ${canvasId}`, w / 2, h / 2); return { ctx, transformFunc: null }; }
+             return { ctx, transformFunc: transformFunc };
+        }
+
+        // --- Plotting Function for Triangles (Separate Function) ---
+         function plotDataPointTriangle(ctx, pA, pB, pC, transformFunc, markerType = 'current', label = null) {
+             if (!ctx || !transformFunc ) { console.warn(`Cannot plot Triangle ${label}: missing context or transform.`); return null; }
+             if(pA + pB + pC < 1e-6 && markerType !== 'difference') { console.log(`Skipping Triangle plot for ${label}: zero sum.`); return null; }
+             try {
+                 const [userX, userY] = mapPercentagesToTriangleCartesian(pA, pB, pC);
+                 if (isNaN(userX) || isNaN(userY)) throw new Error(`Invalid triangle user coords: ${userX}, ${userY}`);
+                 const [canvasX, canvasY] = transformFunc(userX, userY);
+                 if (isNaN(canvasX) || isNaN(canvasY)) throw new Error(`Invalid triangle canvas coords: ${canvasX}, ${canvasY}`);
+                 console.log(`Plotting Triangle Point (${ctx.canvas.id}): Type=${markerType} Label=${label} User(${userX.toFixed(2)}, ${userY.toFixed(2)}), Canvas(${canvasX.toFixed(0)}, ${canvasY.toFixed(0)})`);
+                 plotMarker(ctx, canvasX, canvasY, label, markerType);
+                 return { userX, userY };
+             } catch (e) { console.error(`Error plotting triangle point ${label} on ${ctx.canvas.id}:`, e); return null;}
+        }
+        // --- Plotting Function for Pentagon 1 (Separate Function) ---
+         function plotDataPointPentagon(ctx, percentages_obj, transformFunc, markerType = 'current', label = null) {
+             if (!ctx || !transformFunc) {console.warn(`Cannot plot point on DP1 ${label}: missing context or transform.`); return null;}
+             try {
+                 const [userX, userY] = mapPercentagesToPentagonCartesian(percentages_obj);
+                 if (userX === undefined || userY === undefined || isNaN(userX) || isNaN(userY)) { throw new Error(`Invalid DP1 user coords calculated for ${label}: ${userX}, ${userY}`); }
+                 const [canvasX, canvasY] = transformFunc(userX, userY);
+                 if (isNaN(canvasX) || isNaN(canvasY)) throw new Error(`Invalid DP1 canvas coords: ${canvasX}, ${canvasY}`);
+                 console.log(`Plotting DP1 Point: Type=${markerType} Label=${label} User(${userX.toFixed(2)}, ${userY.toFixed(2)}), Canvas(${canvasX.toFixed(0)}, ${canvasY.toFixed(0)})`); // DEBUG
+                 plotMarker(ctx, canvasX, canvasY, label, markerType);
+                 return { userX, userY };
+             } catch(e) { console.error(`Error plotting point on DP1 ${label}:`, e); return null; }
+         }
+
+        // --- DGA Analysis Functions --- (No changes needed here)
+        function calculateRogers(H2, CH4, C2H6, C2H4, C2H2) { let content = `<span class="method-title">Rogers Ratio Method Analysis:</span>`; if (H2 === 0 || CH4 === 0 || C2H6 === 0 || C2H4 === 0) { content += "Not applicable (zero value)."; } else { const r1 = CH4 / H2; const r2 = C2H6 / CH4; const r3 = C2H4 / C2H6; const r4 = C2H2 / C2H4; content += `<strong>Ratios:</strong> CH4/H2=${r1.toFixed(2)}, C2H6/CH4=${r2.toFixed(2)}, C2H4/C2H6=${r3.toFixed(2)}, C2H2/C2H4=${r4.toFixed(2)}<br>`; let diagnosis = "Mixed/Undefined"; if (r1 < 0.1 && r2 < 1.0 && r3 < 1.0 && r4 < 0.5) diagnosis = "Normal or PD"; else if (r1 >= 0.1 && r1 <= 1.0 && r2 < 1.0 && r3 < 1.0 && r4 < 0.5) diagnosis = "Low Temp Thermal (<300C) or PD"; else if (r1 >= 0.1 && r1 <= 1.0 && r2 >= 1.0 && r3 < 1.0 && r4 < 0.5) diagnosis = "Thermal 150-300C"; else if (r1 > 1.0 && r2 < 1.0 && r3 >= 1.0 && r3 <= 3.0 && r4 < 0.5) diagnosis = "Thermal 300-700C"; else if (r1 > 1.0 && r2 < 1.0 && r3 > 3.0 && r4 < 0.5) diagnosis = "Thermal >700C"; else if (r1 >= 0.1 && r1 <= 1.0 && r2 < 1.0 && r3 >= 1.0 && r3 <= 3.0 && r4 >= 0.5 && r4 <= 3.0) diagnosis = "Low Energy Discharge (Sparks)"; else if (r1 >= 0.1 && r1 <= 1.0 && r2 < 1.0 && r3 > 3.0 && r4 >= 0.5 && r4 <= 3.0) diagnosis = "High Energy Discharge (Arcs)"; else if (r4 >= 0.5) diagnosis = "Discharge Component Likely"; content += `<strong>Diagnosis:</strong> ${diagnosis}`; } return `<div class="ratio-method-result" id="rogers-result">${content}</div>`; }
+        function calculateIEC(H2, CH4, C2H4, C2H2, C2H6) { let content = `<span class="method-title">IEC 60599 Ratio Method Analysis:</span>`; if (C2H4 === 0 || H2 === 0 || C2H6 === 0) { content += "Not applicable (zero denominator)."; } else { const r1 = C2H2 / C2H4; const r2 = CH4 / H2; const r3 = C2H4 / C2H6; content += `<strong>Ratios:</strong> C2H2/C2H4=${r1.toFixed(2)}, CH4/H2=${r2.toFixed(2)}, C2H4/C2H6=${r3.toFixed(2)}<br>`; let diagnosis = "Undefined Case"; if (r1 < 0.1 && r2 < 0.1 && r3 < 0.2) diagnosis = "PD: Partial Discharges"; else if (r1 >= 0.1 && r1 <= 3.0 && r2 >= 0.1 && r2 <= 0.5 && r3 >= 1.0 && r3 <= 3.0) diagnosis = "D1: Low Energy Discharges"; else if (r1 >= 0.1 && r1 <= 3.0 && r2 >= 0.1 && r2 <= 0.5 && r3 > 3.0) diagnosis = "D2: High Energy Discharges"; else if (r1 < 0.1 && r2 >= 0.1 && r2 <= 0.5 && r3 < 1.0) diagnosis = "T1: Thermal Fault < 300°C"; else if (r1 < 0.1 && r2 > 0.5 && r3 >= 1.0 && r3 <= 3.0) diagnosis = "T2: Thermal Fault 300°C - 700°C"; else if (r1 < 0.2 && r2 > 0.5 && r3 > 3.0) diagnosis = "T3: Thermal Fault > 700°C"; if (C2H2 > 10 && C2H2 > C2H4 && (diagnosis == "Undefined Case" || !diagnosis.startsWith("D"))) diagnosis += " (High C2H2 override -> D2 likely)"; content += `<strong>Diagnosis:</strong> ${diagnosis}`; } return `<div class="ratio-method-result" id="iec-result">${content}</div>`; }
+        function calculateDornenburg(H2, CH4, C2H6, C2H4, C2H2) { let content = `<span class="method-title">Dornenburg Ratio Method Analysis:</span>`; const minLevels = { H2: 50, CH4: 50, C2H6: 20, C2H4: 20, C2H2: 5 }; if (H2 < minLevels.H2 || CH4 < minLevels.CH4 || C2H6 < minLevels.C2H6 || C2H4 < minLevels.C2H4 || C2H2 < minLevels.C2H2) { content += "Not applicable (Gas levels too low)."; } else if (H2 === 0 || CH4 === 0 || C2H6 === 0 || C2H4 === 0) { content += "Not applicable (zero denominator)."; } else { const r1 = CH4 / H2; const r2 = C2H2 / CH4; const r3 = C2H4 / C2H6; const r4 = C2H6 / C2H4; content += `<strong>Ratios:</strong> CH4/H2=${r1.toFixed(2)}, C2H2/CH4=${r2.toFixed(2)}, C2H4/C2H6=${r3.toFixed(2)}, C2H6/C2H4=${r4.toFixed(2)}<br>`; let thermal = (r1 > 1.0 && r2 < 0.3 && r3 > 1.0 && r4 < 0.4); let corona = (r1 < 1.0 && r2 > 0.3); let arcing = (r1 < 1.0 && r2 > 0.3 && r3 > 1.0 && r4 < 0.4); let diagnosis = []; if (thermal) diagnosis.push("Thermal"); if (corona) diagnosis.push("Corona(PD)"); if (arcing) diagnosis.push("Arcing(D)"); if (diagnosis.length === 0) content += "<strong>Diagnosis:</strong> Undefined/Mixed."; else content += `<strong>Diagnosis:</strong> ${diagnosis.join(' / ')}`; } return `<div class="ratio-method-result" id="dornenburg-result">${content}</div>`; }
+        function calculateBasicRatios(H2, CH4, C2H6, C2H4, C2H2) { let content = `<span class="method-title">Basic Gas Ratio Analysis:</span>`; const r_C2H2_C2H4 = C2H4 !== 0 ? (C2H2 / C2H4).toFixed(2) : "N/A"; const r_CH4_H2 = H2 !== 0 ? (CH4 / H2).toFixed(2) : "N/A"; const r_C2H4_C2H6 = C2H6 !== 0 ? (C2H4 / C2H6).toFixed(2) : "N/A"; content += `<strong>Ratios:</strong> C2H2/C2H4 = ${r_C2H2_C2H4}, CH4/H2 = ${r_CH4_H2}, C2H4/C2H6 = ${r_C2H4_C2H6}<br>`; let interp = []; if (r_C2H2_C2H4 !== "N/A") interp.push(`Discharge indication: ${r_C2H2_C2H4 > 0.5 ? 'Likely' : (r_C2H2_C2H4 < 0.1 ? 'Unlikely' : 'Possible')}`); if (r_CH4_H2 !== "N/A") interp.push(`Thermal temp: ${r_CH4_H2 > 1.0 ? 'Higher' : (r_CH4_H2 < 0.1 ? 'Low(PD?)' : 'Lower/Mixed')}`); if (r_C2H4_C2H6 !== "N/A") interp.push(`Thermal severity: ${r_C2H4_C2H6 > 3.0 ? '>700°C' : (r_C2H4_C2H6 > 1.0 ? '300-700°C' : '<300°C')}`); if (interp.length > 0) content += `<strong>Interpretation:</strong> ${interp.join('; ')}.`; else content += "<strong>Interpretation:</strong> Insufficient data."; return `<div class="ratio-method-result" id="basic-ratio-result">${content}</div>`; }
+        function calculateKeyGas(H2, CH4, C2H6, C2H4, C2H2, CO, CO2) { let msg = ""; const combustible = { H2, CH4, C2H6, C2H4, C2H2, CO }; const TDCG = Object.values(combustible).reduce((s, v) => s + (v || 0), 0); if (TDCG < 1) { return `<div class="key-gas-result"><strong>Key Gas Analysis (Based on %TDCG):</strong><br>TDCG is zero or negligible. Analysis not applicable.</div>`;} const percentages = {}; let maxPerc = 0; let keyGas = "None"; for (const gas in combustible) { percentages[gas] = ((combustible[gas] || 0) / TDCG) * 100; if (percentages[gas] > maxPerc) { maxPerc = percentages[gas]; keyGas = gas; } } let diagnosis = "Undetermined / Mixed Fault"; if (keyGas === "H2" && percentages.H2 > 60 && percentages.C2H2 < 1 && percentages.C2H4 < 2) diagnosis = "PD (Partial Discharge)"; else if (keyGas === "C2H2" && percentages.C2H2 > 5) diagnosis = "Arcing (D2)"; else if (keyGas === "C2H4" && percentages.C2H4 > 30 && percentages.C2H2 < 2) diagnosis = "High Temp Thermal (T3)"; else if ((keyGas === "CH4" || keyGas === "C2H6") && (percentages.CH4 + percentages.C2H6) > 40 && percentages.C2H4 < 20 && percentages.C2H2 < 1) diagnosis = "Low/Mid Temp Thermal (T1/T2)"; else if (keyGas === "CO" && CO > 350 && percentages.CO > 30) diagnosis = "Paper Overheating (CO Dominant %)"; if (diagnosis === "Undetermined / Mixed Fault") { if (percentages.C2H2 > 2) diagnosis = "Arcing Component Present"; else if (percentages.C2H4 > 20) diagnosis = "High Temp Thermal Component Present"; else if (percentages.CH4 + percentages.C2H6 > 30) diagnosis = "Thermal Component Present"; } let paperInvolvement = "No clear paper issue from CO/CO2."; if (CO > 350) { const co2coRatio = CO !== 0 ? (CO2 / CO).toFixed(2) : "N/A"; if (co2coRatio !== "N/A") paperInvolvement = `Paper involved (CO2/CO=${co2coRatio}, ${co2coRatio < 3 ? 'High Temp/Arc' : (co2coRatio > 10 ? 'Low Temp/Aging' : 'Mid Temp')})`; } else if (CO2 > 2500) { paperInvolvement = "Elevated CO2, monitor CO."; } msg = `<strong>Key Gas Analysis (Based on %TDCG):</strong><br> <strong>Key Gas (%):</strong> ${keyGas} (${maxPerc.toFixed(1)}%)<br> <strong>Diagnosis:</strong> ${diagnosis}<br> <strong>Cellulose:</strong> ${paperInvolvement}`; return `<div class="result-block key-gas-result">${msg}</div>`; }
+        function calculateC2H2H2Ratio(C2H2, H2) { let content = `<span class="method-title">C₂H₂ / H₂ Ratio Analysis:</span>`; if (H2 === 0) { content += "Not applicable (H₂ is zero)."; } else { const ratio = C2H2 / H2; content += `<strong>Ratio Value:</strong> ${ratio.toFixed(2)}<br>`; let interp = "Indicates primarily thermal faults or PD."; if (ratio > 3) interp = "Strong indication of Arcing (D2) or possible OLTC contamination."; else if (ratio > 1) interp = "Suggests significant discharge component (D1/D2)."; else if (ratio > 0.1) interp = "Suggests possible mix of low energy discharge and thermal issues."; content += `<strong>Significance:</strong> ${interp}`; } return `<div class="extra-ratio-result" id="c2h2h2-result">${content}</div>`; }
+        function analyzeO2N2Ratio(O2, N2) { let content = `<span class="method-title">O₂ / N₂ Ratio Analysis:</span>`; if (N2 === 0) { content += "Not applicable (N₂ is zero)."; } else { const ratio = O2 / N2; content += `<strong>Ratio Value:</strong> ${ratio.toFixed(2)}<br>`; let interp = "Ratio within typical range for sealed units (approx 0.1-0.3). Indicates good sealing."; let action = "Continue routine monitoring."; if (ratio > 0.4) { interp = "Ratio HIGH. Strong possibility of an AIR LEAK into the transformer tank or gas space."; action = "Investigate potential leak sources (gaskets, bushings, valves, welds). Check gas blanket system pressure if applicable. Sampling technique check recommended."; } else if (ratio < 0.1) { interp = "Ratio LOW. Could indicate excessive OXYGEN CONSUMPTION by an advanced, severe fault (e.g., extensive arcing, paper carbonization) or issues with sealing/breathing (e.g., blocked breather, N2 purge issue)."; action = "Requires URGENT attention. Cross-reference with other DGA results (TDCG, fault types). Consider internal inspection if other indicators are severe."; } else if (ratio < 0.18) { interp = "Ratio slightly low. Monitor trend closely. May indicate initial stages of O2 consumption or minor sealing issues."; action = "Increase monitoring frequency. Check trends of O2, N2, and fault gases."; } content += `<strong>Interpretation:</strong> ${interp}<br><strong>Action:</strong> ${action}`; } return `<div class="extra-ratio-result" id="o2n2-result">${content}</div>`; }
+        function analyzeCO2CORatio(CO, CO2) { let content = `<span class="method-title">CO₂ / CO Ratio Analysis (Cellulose Involvement):</span>`; if (CO === 0) { content += `CO is zero. Ratio not applicable. High CO₂ (${CO2} ppm) alone can indicate slow low-temp paper degradation. Monitor CO trend.`; } else if (CO < 100 && CO2 < 1000) { content += `CO (${CO} ppm) and CO₂ (${CO2} ppm) levels are low. Ratio interpretation may not be significant. Focus on trends if gases increase.`; } else { const ratio = CO2 / CO; content += `<strong>Ratio Value:</strong> ${ratio.toFixed(2)} (CO=${CO} ppm, CO₂=${CO2} ppm)<br>`; let interp = "Undefined range."; let fault_implication = "General cellulose degradation."; if (ratio < 3) { interp = "Ratio < 3 suggests HIGH TEMPERATURE (>700°C) thermal degradation of cellulose OR significant ARCING involving paper."; fault_implication = "Severe fault likely involving paper degradation."; } else if (ratio <= 7) { interp = "Ratio 3-7 suggests MEDIUM TEMPERATURE (approx. 300-700°C) thermal degradation involving cellulose."; fault_implication = "Significant overheating involving paper."; } else if (ratio <= 10) { interp = "Ratio 7-10 suggests LOWER TEMPERATURE (approx. 150-300°C) thermal degradation involving cellulose."; fault_implication = "Lower temperature overheating involving paper."; } else { interp = "Ratio > 10 typically indicates NORMAL CELLULOSE AGING OR very low temperature overheating (<150°C) if CO is also elevated (>350ppm)."; fault_implication = "Likely normal aging, or very low temp issue if CO levels warrant concern."; } if (CO < 350 && ratio > 10) { fault_implication = "Likely normal aging (CO is not high)."; } else if (CO > 1000 && ratio < 3) { fault_implication += " High CO suggests severe event."; } content += `<strong>Interpretation (Temperature Range):</strong> ${interp}<br><strong>Implication:</strong> ${fault_implication}`; } return `<div class="extra-ratio-result" id="co2co-result">${content}</div>`; }
+        function analyzeTDCG(tdcg) { let content = `<span class="method-title">TDCG Analysis:</span>`; content += `<strong>Total Dissolved Combustible Gas (TDCG): ${tdcg.toFixed(0)} ppm</strong><br>`; let condition = 1, status = "Normal", action = "Continue routine tests."; if (tdcg > 4630) { condition = 4; status = "Very High"; action = "Exercise extreme caution. Plan outage ASAP. Analyze gases frequently (daily/weekly)."; } else if (tdcg > 1920) { condition = 3; status = "High"; action = "Analyze gases frequently (monthly/quarterly). Plan outage for inspection/repair."; } else if (tdcg > 720) { condition = 2; status = "Moderately High"; action = "Analyze gases more frequently (quarterly/semi-annually). Investigate cause."; } content += `<strong>Condition Level (IEEE C57.104):</strong> ${condition} (${status})<br>`; content += `<strong>Recommended Action:</strong> ${action}`; return `<div class="result-block" id="tdcg-analysis">${content}</div>`; }
+        function calculateGasDifferences(current, previous) { if (!previous) return { differences: null, html: "" }; const differences = {}; let increaseData = {}; let html = "<h3>Gas Change Since Previous Sample</h3>"; html += `<p style="text-align:center; font-size: 0.9em;">(Comparing Current [${current.sampleDate || 'Now'}] with Previous [${previous.sampleDate || new Date(previous.timestamp).toLocaleDateString()}])</p>`; html += "<table><thead><tr><th>Gas</th><th>Current</th><th>Previous</th><th>Change</th><th>Increase Only</th></tr></thead><tbody>"; let hasDifference = false; GASES_FOR_DIFF.forEach(gas => { const currentVal = current[gas] ?? 0; const previousVal = previous[gas] ?? 0; const diff = currentVal - previousVal; const increase = Math.max(0, diff); differences[gas] = increase; increaseData[gas] = increase; if(Math.abs(diff) > 0.1) hasDifference = true; html += `<tr><td>${gas.replace(/(\d)/g, '₂$1').replace('₂₂','₂').replace('₂₄','₄').replace('₂₆','₆')}</td><td>${currentVal.toFixed(0)}</td><td>${previousVal.toFixed(0)}</td><td>${diff >= 0 ? '+' : ''}${diff.toFixed(0)}</td><td>${increase > 0 ? `+${increase.toFixed(0)}` : '0'}</td></tr>`; }); html += "</tbody></table>"; if (!hasDifference) { html = `<h3>Gas Change Since Previous Sample</h3><p>(Comparing Current [${current.sampleDate || 'Now'}] with Previous [${previous.sampleDate || new Date(previous.timestamp).toLocaleDateString()}])</p><p>No significant change detected.</p>`; } const diffEl = document.getElementById("gasDifferenceOutput"); if (diffEl) diffEl.innerHTML = html; else console.error("gasDifferenceOutput element not found"); return increaseData; }
+        function analyzeIncreasedGas(diffDt1Coords, diffDt4Coords, diffDt5Coords, diffDp1Coords) { let analysisText = `<div class="result-block" id="increased-gas-analysis"> <span class="result-title">Increased Gas Analysis (Difference Point 'Δ')</span>`; analysisText += `<p><small>This plots a point based ONLY on the gases that have increased since the previous sample. It's non-standard and mainly shows the *direction* of change. Interpret with extreme caution.</small></p><ul>`; const getZone = (coords, regions) => coords ? getFaultFromCoords(coords.userX, coords.userY, regions) : "N/A (No Relevant Increase / Plot Error)"; analysisText += `<li>DT1 (User Axes): Zone <strong>${getZone(diffDt1Coords, dt1Regions)}</strong></li>`; analysisText += `<li>DT4 (User Axes): Zone <strong>${getZone(diffDt4Coords, dt4Regions)}</strong></li>`; analysisText += `<li>DT5 (User Axes): Zone <strong>${getZone(diffDt5Coords, dt5Regions)}</strong></li>`; analysisText += `<li>DP1 (User Axes): Zone <strong>${getZone(diffDp1Coords, dp1Regions)}</strong></li>`; analysisText += `</ul></div>`; return analysisText; }
+
+        // --- History Functions ---
+        function getHistory() { const history = localStorage.getItem('dgaHistory'); return history ? JSON.parse(history) : []; }
+        function saveHistory(history) { localStorage.setItem('dgaHistory', JSON.stringify(history)); }
+        function displayHistory() { const history = getHistory(); const tableBody = document.getElementById('historyTable')?.querySelector('tbody'); if(!tableBody) return; tableBody.innerHTML = ''; history.forEach((sample, index) => { const row = tableBody.insertRow(); const displayDate = sample.sampleDate || new Date(sample.timestamp).toLocaleDateString(); row.innerHTML = ` <td><input type="checkbox" class="plotHistorySample" value="${index}" onchange="updateTrendButtonState()" title="Select to plot sample #${index + 1}"></td> <td>${index + 1}</td><td>${displayDate}</td> <td>${sample.H2 ?? 'N/A'}</td><td>${sample.CH4 ?? 'N/A'}</td><td>${sample.C2H6 ?? 'N/A'}</td> <td>${sample.C2H4 ?? 'N/A'}</td><td>${sample.C2H2 ?? 'N/A'}</td><td>${sample.CO ?? 'N/A'}</td> <td>${sample.CO2 ?? 'N/A'}</td><td>${sample.O2 ?? 'N/A'}</td><td>${sample.N2 ?? 'N/A'}</td> <td>${new Date(sample.timestamp).toLocaleDateString()}</td>`; }); updateTrendButtonState(); }
+        function saveCurrentSample() { const gas = id => parseFloat(document.getElementById(id).value) || 0; const sampleDateInput = document.getElementById('sampleDate').value; if (!sampleDateInput) { alert("Please select a Sample Date before saving."); return; } const currentSample = { sampleDate: sampleDateInput, timestamp: Date.now(), H2: gas("H2"), CH4: gas("CH4"), C2H6: gas("C2H6"), C2H4: gas("C2H4"), C2H2: gas("C2H2"), CO: gas("CO"), CO2: gas("CO2"), O2: gas("O2"), N2: gas("N2") }; let history = getHistory(); history.unshift(currentSample); history.sort((a, b) => new Date(b.sampleDate || b.timestamp) - new Date(a.sampleDate || a.timestamp)); if (history.length > MAX_HISTORY) { history = history.slice(0, MAX_HISTORY); } saveHistory(history); displayHistory(); alert(`Sample from ${sampleDateInput} saved to history.`); }
+        function clearHistory() { if (confirm('Are you sure you want to clear all historical samples?')) { localStorage.removeItem('dgaHistory'); displayHistory(); } }
+        function updateTrendButtonState() { const historyCheckboxes = document.querySelectorAll('.plotHistorySample:checked'); const currentCheckbox = document.getElementById('plotCurrentSample'); const selectedCount = historyCheckboxes.length + (currentCheckbox.checked ? 1 : 0); const btn = document.getElementById('plotTrendsBtn'); if(btn) btn.disabled = selectedCount < 2; }
+
+        // --- Chart Instances ---
+         let ppmChartInstance = null; let percentChartInstance = null;
+
+        // --- Trend Plotting Function ---
+         function plotTrends() { console.log("Plotting trends..."); const history = getHistory(); const samplesToPlot = []; if (document.getElementById('plotCurrentSample').checked) { const gas = id => parseFloat(document.getElementById(id).value) || 0; samplesToPlot.push({ sampleDate: document.getElementById('sampleDate').value || new Date().toISOString().slice(0,10), timestamp: Date.now(), H2: gas("H2"), CH4: gas("CH4"), C2H6: gas("C2H6"), C2H4: gas("C2H4"), C2H2: gas("C2H2"), CO: gas("CO"), label: "Current" }); } document.querySelectorAll('.plotHistorySample:checked').forEach(checkbox => { const index = parseInt(checkbox.value, 10); if (history[index]) { samplesToPlot.push({ ...history[index], label: `#${index + 1}` }); } }); if (samplesToPlot.length < 1) { alert("Please select at least one sample to plot trends."); return; } samplesToPlot.sort((a, b) => new Date(a.sampleDate || a.timestamp) - new Date(b.sampleDate || b.timestamp)); const labels = samplesToPlot.map(s => s.sampleDate || new Date(s.timestamp).toLocaleDateString()); const keyGases = ["H2", "CH4", "C2H6", "C2H4", "C2H2", "CO"]; const gasColors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b']; const ppmDatasets = keyGases.map((gas, index) => ({ label: gas.replace(/(\d)/g, '₂$1').replace('₂₂','₂').replace('₂₄','₄').replace('₂₆','₆'), data: samplesToPlot.map(s => s[gas] ?? 0), borderColor: gasColors[index % gasColors.length], backgroundColor: gasColors[index % gasColors.length] + '80', tension: 0.1, fill: false })); const percentDatasets = keyGases.map((gas, index) => ({ label: gas.replace(/(\d)/g, '₂$1').replace('₂₂','₂').replace('₂₄','₄').replace('₂₆','₆') + ' (%)', data: samplesToPlot.map(s => { const tdcg = (s.H2||0)+(s.CH4||0)+(s.C2H6||0)+(s.C2H4||0)+(s.C2H2||0)+(s.CO||0); return tdcg > 0 ? ((s[gas] ?? 0) / tdcg) * 100 : 0; }), borderColor: gasColors[index % gasColors.length], backgroundColor: gasColors[index % gasColors.length] + '80', tension: 0.1, fill: false, yAxisID: 'yPercent' })); const ppmCtx = document.getElementById('ppmTrendChart').getContext('2d'); if (ppmChartInstance) { ppmChartInstance.destroy(); } ppmChartInstance = new Chart(ppmCtx, { type: 'line', data: { labels: labels, datasets: ppmDatasets }, options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Key Combustible Gases Trend (ppm vs. Sample Date)', font: {size: 14}}, legend: { position: 'bottom' }}, scales: { x: { title: { display: true, text: 'Sample Date' } }, y: { title: { display: true, text: 'Concentration (ppm)' }, beginAtZero: true } } } }); const percentCtx = document.getElementById('percentTrendChart').getContext('2d'); if (percentChartInstance) { percentChartInstance.destroy(); } percentChartInstance = new Chart(percentCtx, { type: 'line', data: { labels: labels, datasets: percentDatasets }, options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Key Combustible Gases Trend (% of TDCG vs. Sample Date)', font: {size: 14}}, legend: { position: 'bottom' } }, scales: { x: { title: { display: true, text: 'Sample Date' } }, yPercent: { title: { display: true, text: 'Percentage (%)' }, min: 0, max: 100 } } } }); console.log("Trend charts updated."); }
+
+        // --- Main Analysis Orchestrator ---
+        function runFullAnalysis() {
+            console.log("--- Running Full Analysis ---");
+            ['dt1-fault', 'dt4-fault', 'dt5-fault', 'dp1-fault', 'gasDifferenceOutput', 'increased-gas-analysis'].forEach(id => { const el = document.getElementById(id); if(el) el.innerHTML = ""; });
+            const resultEl = document.getElementById("result"); if(!resultEl) { console.error("Result element missing!"); return; } resultEl.innerHTML = "<p>Processing...</p>";
+
+            try {
+                const gas = id => parseFloat(document.getElementById(id).value) || 0;
+                const currentSample = { sampleDate: document.getElementById('sampleDate').value || new Date().toISOString().slice(0,10), timestamp: Date.now(), H2: gas("H2"), CH4: gas("CH4"), C2H6: gas("C2H6"), C2H4: gas("C2H4"), C2H2: gas("C2H2"), CO: gas("CO"), CO2: gas("CO2"), O2: gas("O2"), N2: gas("N2"), isHistorical: false };
+                let resultsTextHTML = ""; let increasedGasAnalysisHTML = "";
+
+                // --- Run Text Analyses ---
+                const TDCG = currentSample.H2 + currentSample.CH4 + currentSample.C2H6 + currentSample.C2H4 + currentSample.C2H2 + currentSample.CO;
+                resultsTextHTML += analyzeTDCG(TDCG);
+                let ratioHTML = `<div class="result-block" id="ratio-analysis"><span class="result-title">Ratio Analysis Methods</span>`; ratioHTML += calculateRogers(currentSample.H2, currentSample.CH4, currentSample.C2H6, currentSample.C2H4, currentSample.C2H2); ratioHTML += calculateIEC(currentSample.H2, currentSample.CH4, currentSample.C2H4, currentSample.C2H2, currentSample.C2H6); ratioHTML += calculateDornenburg(currentSample.H2, currentSample.CH4, currentSample.C2H6, currentSample.C2H4, currentSample.C2H2); ratioHTML += calculateBasicRatios(currentSample.H2, currentSample.CH4, currentSample.C2H6, currentSample.C2H4, currentSample.C2H2); ratioHTML += `</div>`; resultsTextHTML += ratioHTML;
+                let extraRatioHTML = `<div class="result-block" id="extra-ratio-analysis"><span class="result-title">Specific Ratio & Gas Analysis</span>`; extraRatioHTML += calculateC2H2H2Ratio(currentSample.C2H2, currentSample.H2); extraRatioHTML += analyzeO2N2Ratio(currentSample.O2, currentSample.N2); extraRatioHTML += analyzeCO2CORatio(currentSample.CO, currentSample.CO2); extraRatioHTML += `</div>`; resultsTextHTML += extraRatioHTML;
+                resultsTextHTML += calculateKeyGas(currentSample.H2, currentSample.CH4, currentSample.C2H6, currentSample.C2H4, currentSample.C2H2, currentSample.CO, currentSample.CO2);
+                const o2n2Ratio = currentSample.N2 !== 0 ? (currentSample.O2 / currentSample.N2).toFixed(2) : "N/A"; let o2n2Interp = "N/A"; if (o2n2Ratio !== "N/A") o2n2Interp = o2n2Ratio < 0.1 ? "Low" : (o2n2Ratio > 0.4 ? "High" : "Normal");
+                resultsTextHTML += `<div class="result-block" id="supplementary-analysis"><span class="result-title">Supplementary Info</span>`; resultsTextHTML += `<strong>TDCG (Current):</strong> ${TDCG.toFixed(0)} ppm<br>`; resultsTextHTML += `<strong>O₂/N₂ Ratio (Current):</strong> ${o2n2Ratio} (${o2n2Interp})<br>`; resultsTextHTML += `</div>`;
+                resultsTextHTML += `<div id="increased-gas-analysis-placeholder"></div>`;
+                resultEl.innerHTML = resultsTextHTML;
+
+                 // --- Prepare for Plotting ---
+                 const history = getHistory(); const samplesToPlot = [];
+                 const plotCurrent = document.getElementById('plotCurrentSample').checked;
+                 const comparePrevious = document.getElementById('compareWithPrevious').checked;
+                 let differenceSample = null; let diffDt1Coords = null, diffDt4Coords = null, diffDt5Coords = null, diffDp1Coords = null;
+                 let previousSampleData = null;
+
+                 if (comparePrevious && history.length > 0) {
+                     previousSampleData = history[0];
+                     const differences = calculateGasDifferences(currentSample, previousSampleData);
+                     if (differences && Object.values(differences).some(d => d > 0)) { differenceSample = { H2:0, CH4:0, C2H6:0, C2H4:0, C2H2:0, CO:0, markerType: 'difference', label: 'Δ', isHistorical: true }; GASES_FOR_DIFF.forEach(gas => { differenceSample[gas] = differences[gas] ?? 0; }); }
+                 } else { const diffEl = document.getElementById("gasDifferenceOutput"); if(diffEl) diffEl.innerHTML = ""; }
+
+                 if (plotCurrent) { samplesToPlot.push({ ...currentSample, markerType: 'current', label: 'C' }); }
+                 if (comparePrevious && previousSampleData) {
+                     const previousSampleForPlot = { ...previousSampleData, isHistorical: true, markerType: 'previous', label: 'P' };
+                     let alreadySelected = false; document.querySelectorAll('.plotHistorySample:checked').forEach(checkbox => { if (parseInt(checkbox.value, 10) === 0) alreadySelected = true; }); if (!alreadySelected) samplesToPlot.push(previousSampleForPlot); else { const existingIndex = samplesToPlot.findIndex(s => s.timestamp === previousSampleData.timestamp); if (existingIndex > -1) { samplesToPlot[existingIndex].markerType = 'previous'; samplesToPlot[existingIndex].label = 'P';} else { if(!plotCurrent || samplesToPlot[0]?.timestamp !== previousSampleData.timestamp) {samplesToPlot.push(previousSampleForPlot);} else if (!plotCurrent) {samplesToPlot.push(previousSampleForPlot);} } }
+                 }
+                 document.querySelectorAll('.plotHistorySample:checked').forEach(checkbox => { const index = parseInt(checkbox.value, 10); if (comparePrevious && index === 0) return; if (history[index]) { let historicalSample = { ...history[index], isHistorical: true, markerType: 'historical', label: (index + 1).toString()}; if (!samplesToPlot.find(s => s.timestamp === historicalSample.timestamp)) { samplesToPlot.push(historicalSample); } } });
+                 if (differenceSample) { samplesToPlot.push(differenceSample); }
+                 console.log(`Plotting ${samplesToPlot.length} samples:`, samplesToPlot.map(s=>s.label).join(', '));
+
+                 // --- Draw Base Graphs ---
+                 const dt1GasNames = ["C₂H₂", "C₂H₄", "CH₄"]; const dt4GasNames = ["C₂H₆", "CH₄", "H₂"]; const dt5GasNames = ["C₂H₆", "C₂H₄", "CH₄"]; const dp1GasNames = ["H₂", "C₂H₂", "C₂H₄", "CH₄", "C₂H₆"];
+                 let dt1Info = null, dt4Info = null, dt5Info = null, dp1Info = null;
+                 try { dt1Info = drawTriangle("dt1", dt1Regions, dt1GasNames); } catch (e) { console.error("Error drawing DT1:", e); const el=document.getElementById("dt1-fault"); if(el) el.innerHTML = "<span class='error-message'>Error drawing graph. Check console.</span>"; }
+                 try { dt4Info = drawTriangle("dt4", dt4Regions, dt4GasNames); } catch (e) { console.error("Error drawing DT4:", e); const el=document.getElementById("dt4-fault"); if(el) el.innerHTML = "<span class='error-message'>Error drawing graph. Check console.</span>"; }
+                 try { dt5Info = drawTriangle("dt5", dt5Regions, dt5GasNames); } catch (e) { console.error("Error drawing DT5:", e); const el=document.getElementById("dt5-fault"); if(el) el.innerHTML = "<span class='error-message'>Error drawing graph. Check console.</span>"; }
+                 try { dp1Info = drawPentagon("dp1", dp1GasNames, dp1Regions); } catch (e) { console.error("Error drawing DP1:", e); const el=document.getElementById("dp1-fault"); if(el) el.innerHTML = "<span class='error-message'>Error drawing graph. Check console.</span>"; }
+
+                 // --- Plot Selected Samples & Update Interpretation for CURRENT Sample ---
+                 let currentDt1FaultCode = "N/A", currentDt4FaultCode = "N/A", currentDt5FaultCode = "N/A", currentDp1FaultCode = "N/A";
+
+                 samplesToPlot.forEach((sample, sampleIndex) => {
+                     const { H2, CH4, C2H6, C2H4, C2H2, CO, isHistorical, markerType, label } = sample;
+                     let coords;
+                     console.log(`--- Processing Sample for Plotting: ${label} (Type: ${markerType}) ---`);
+
+                     // DT1 Plotting
+                     try {
+                         if (dt1Info?.transformFunc) {
+                             const gA = C2H2 ?? 0, gB = C2H4 ?? 0, gC = CH4 ?? 0; const sum = gA + gB + gC;
+                             if (sum > 1e-6 || markerType === 'difference') { const pA = sum === 0 ? 33.33 : (gA / sum) * 100; const pB = sum === 0 ? 33.33 : (gB / sum) * 100; const pC = sum === 0 ? 33.33 : (gC / sum) * 100; coords = plotDataPointTriangle(dt1Info.ctx, pA, pB, pC, dt1Info.transformFunc, markerType, label); if (markerType === 'current' && coords) currentDt1FaultCode = getFaultFromCoords(coords.userX, coords.userY, dt1Regions); if (markerType === 'difference') diffDt1Coords = coords; } else { console.log(`Skipping DT1 plot for ${label}: zero sum.`); }
+                         } else { console.warn(`DT1 info or transformFunc missing for sample ${label}`); if (markerType === 'current') currentDt1FaultCode = "Draw Error"; }
+                     } catch (e) { console.error(`Error plotting DT1 for sample ${label}:`, e); if (markerType === 'current') currentDt1FaultCode = "Plot Error"; }
+
+                     // DT4 Plotting
+                     try {
+                         if (dt4Info?.transformFunc) {
+                             const gA = C2H6 ?? 0, gB = CH4 ?? 0, gC = H2 ?? 0; const sum = gA + gB + gC;
+                              if (sum > 1e-6 || markerType === 'difference') { const pA = sum === 0 ? 33.33 : (gA / sum) * 100; const pB = sum === 0 ? 33.33 : (gB / sum) * 100; const pC = sum === 0 ? 33.33 : (gC / sum) * 100; coords = plotDataPointTriangle(dt4Info.ctx, pA, pB, pC, dt4Info.transformFunc, markerType, label); if (markerType === 'current' && coords) currentDt4FaultCode = getFaultFromCoords(coords.userX, coords.userY, dt4Regions); if (markerType === 'difference') diffDt4Coords = coords; } else { console.log(`Skipping DT4 plot for ${label}: zero sum.`); }
+                         } else { if (markerType === 'current') currentDt4FaultCode = "Draw Error"; console.warn(`DT4 info or transformFunc missing for sample ${label}`); }
+                     } catch (e) { console.error(`Error plotting DT4 for sample ${label}:`, e); if (markerType === 'current') currentDt4FaultCode = "Plot Error"; }
+
+                     // DT5 Plotting
+                     try {
+                         if (dt5Info?.transformFunc) {
+                             const gA = C2H6 ?? 0, gB = C2H4 ?? 0, gC = CH4 ?? 0; const sum = gA + gB + gC;
+                              if (sum > 1e-6 || markerType === 'difference') { const pA = sum === 0 ? 33.33 : (gA / sum) * 100; const pB = sum === 0 ? 33.33 : (gB / sum) * 100; const pC = sum === 0 ? 33.33 : (gC / sum) * 100; coords = plotDataPointTriangle(dt5Info.ctx, pA, pB, pC, dt5Info.transformFunc, markerType, label); if (markerType === 'current' && coords) currentDt5FaultCode = getFaultFromCoords(coords.userX, coords.userY, dt5Regions); if (markerType === 'difference') diffDt5Coords = coords; } else { console.log(`Skipping DT5 plot for ${label}: zero sum.`); }
+                         } else { if (markerType === 'current') currentDt5FaultCode = "Draw Error"; console.warn(`DT5 info or transformFunc missing for sample ${label}`); }
+                     } catch (e) { console.error(`Error plotting DT5 for sample ${label}:`, e); if (markerType === 'current') currentDt5FaultCode = "Plot Error"; }
+
+                     // DP1 Plotting
+                     try {
+                         console.log(`Checking DP1 plot for ${label}. TransformFunc available: ${!!dp1Info?.transformFunc}`);
+                         if (dp1Info?.transformFunc) {
+                             const sumDP1 = (H2 ?? 0) + (CH4 ?? 0) + (C2H6 ?? 0) + (C2H4 ?? 0) + (C2H2 ?? 0);
+                             if (sumDP1 > 1e-6 || markerType === 'difference') {
+                                 const pDP1_obj = { H2: sumDP1 === 0 ? 20 : ((H2 ?? 0) / sumDP1) * 100, CH4: sumDP1 === 0 ? 20 : ((CH4 ?? 0) / sumDP1) * 100, C2H6: sumDP1 === 0 ? 20 : ((C2H6 ?? 0) / sumDP1) * 100, C2H4: sumDP1 === 0 ? 20 : ((C2H4 ?? 0) / sumDP1) * 100, C2H2: sumDP1 === 0 ? 20 : ((C2H2 ?? 0) / sumDP1) * 100 };
+                                 console.log(`DP1 Percentages Obj for ${label}:`, pDP1_obj);
+                                 coords = plotDataPointPentagon(dp1Info.ctx, pDP1_obj, dp1Info.transformFunc, markerType, label);
+                                 if (markerType === 'current' && coords) { currentDp1FaultCode = getFaultFromCoords(coords.userX, coords.userY, dp1Regions); console.log(`DP1 Current Sample Coords: User(${coords.userX.toFixed(2)}, ${coords.userY.toFixed(2)}), Fault: ${currentDp1FaultCode}`); }
+                                 if (markerType === 'difference') diffDp1Coords = coords;
+                             } else { console.log(`Skipping DP1 plot for ${label}: zero sum.`); }
+                         } else { if (markerType === 'current') currentDp1FaultCode = "Draw Error"; console.warn(`DP1 info or transformFunc missing for sample ${label}`); }
+                     } catch (e) { console.error(`Error plotting DP1 for sample ${label}:`, e); if (markerType === 'current') currentDp1FaultCode = "Plot Error"; }
+
+                 }); // End of samplesToPlot loop
+
+                 // --- Update Interpretation Text below graphs based ONLY on CURRENT sample's position ---
+                 const dt1FaultEl = document.getElementById("dt1-fault"); if (dt1FaultEl) dt1FaultEl.innerHTML = getInterpretationText(currentDt1FaultCode, 1); else console.error("Element dt1-fault not found");
+                 const dt4FaultEl = document.getElementById("dt4-fault"); if (dt4FaultEl) dt4FaultEl.innerHTML = getInterpretationText(currentDt4FaultCode, 4); else console.error("Element dt4-fault not found");
+                 const dt5FaultEl = document.getElementById("dt5-fault"); if (dt5FaultEl) dt5FaultEl.innerHTML = getInterpretationText(currentDt5FaultCode, 5); else console.error("Element dt5-fault not found");
+                 const dp1FaultEl = document.getElementById("dp1-fault"); if (dp1FaultEl) dp1FaultEl.innerHTML = getInterpretationText(currentDp1FaultCode, 11); else console.error("Element dp1-fault not found");
+
+                 // --- Generate and Display Increased Gas Analysis Text if applicable ---
+                  const increasedGasEl = document.getElementById("increased-gas-analysis");
+                  if(increasedGasEl) { if (differenceSample) { increasedGasAnalysisHTML = analyzeIncreasedGas(diffDt1Coords, diffDt4Coords, diffDt5Coords, diffDp1Coords); increasedGasEl.innerHTML = increasedGasAnalysisHTML; } else { increasedGasEl.innerHTML = ""; } }
+                  else { console.error("Element increased-gas-analysis not found");}
+
+                 updateTrendButtonState();
+
+            } catch (e) { console.error("Error in runFullAnalysis:", e); const resultDiv = document.getElementById("result"); if (resultDiv) { resultDiv.innerHTML += `<p class='error-message'>An error occurred during analysis: ${e.message}. Check console.</p>`; } }
+            console.log("--- Analysis Complete ---");
+        }
+
+        // --- Initial Drawing on Load ---
+        window.onload = () => {
+             try {
+                document.getElementById('sampleDate').valueAsDate = new Date();
+                displayHistory();
+                // Draw base graphs using USER'S defined gas names for axes
+                 const dt1GasNames = ["C₂H₂", "C₂H₄", "CH₄"]; const dt4GasNames = ["C₂H₆", "CH₄", "H₂"]; const dt5GasNames = ["C₂H₆", "C₂H₄", "CH₄"]; const dp1GasNames = ["H₂", "C₂H₂", "C₂H₄", "CH₄", "C₂H₆"];
+                drawTriangle("dt1", dt1Regions, dt1GasNames); drawTriangle("dt4", dt4Regions, dt4GasNames); drawTriangle("dt5", dt5Regions, dt5GasNames); drawPentagon("dp1", dp1GasNames, dp1Regions);
+                updateTrendButtonState();
+             } catch(e) { console.error("Error during initial setup:", e); alert("An error occurred initializing the page. Please check the console."); }
+        };
+
+        // Add event listener for history checkboxes & current sample checkbox to update trend button state
+         document.getElementById('historyTable')?.addEventListener('change', updateTrendButtonState); // Added null check
+         document.getElementById('plotCurrentSample')?.addEventListener('change', updateTrendButtonState);
+         document.getElementById('compareWithPrevious')?.addEventListener('change', updateTrendButtonState);
+
+    </script>
+</body>
+</html>
